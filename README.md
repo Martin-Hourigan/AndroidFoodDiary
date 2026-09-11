@@ -9,9 +9,13 @@ fructans, lactose, allium, and so on. That is the difference between "toast
 seems bad" and "wheat is fine but fructans are not", which is a conclusion you
 cannot reach by writing down meal names.
 
-Nothing leaves the phone. There is no network permission and no account. The
-whole diary is one JSON file in the app's private storage, exportable as the
-same JSON you could read yourself.
+Nothing you log leaves the phone, and there is no account. The whole diary is
+one JSON file in the app's private storage, exportable as the same JSON you
+could read yourself.
+
+The app makes one kind of network request, and only when you ask it to: tapping
+**Check for updates** in Settings asks GitHub whether a newer release exists. It
+sends nothing — no diary, no identifier, not even a record that you asked.
 
 ## The part worth knowing about
 

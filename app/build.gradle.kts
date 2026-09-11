@@ -69,6 +69,8 @@ android {
     }
 
     buildFeatures {
+        // UpdateRow compares BuildConfig.VERSION_CODE against the latest release.
+        buildConfig = true
         compose = true
     }
 }

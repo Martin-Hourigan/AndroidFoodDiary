@@ -167,8 +167,21 @@ fun LibraryScreen(
             }
 
             Text(
-                "Nothing here leaves the phone. There's no network permission and no analysis by anything " +
+                "Nothing you log ever leaves the phone, and no analysis is done by anything " +
                     "other than arithmetic over your own entries.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 14.dp),
+            )
+            Spacer(Modifier.height(8.dp))
+            // This paragraph exists because the sentence above used to end
+            // "there's no network permission", and that stopped being true the
+            // day the updater was added. Saying exactly what the one request
+            // is, and when it happens, is the only honest version.
+            Text(
+                "The app makes one kind of network request, and only when you tap Check for " +
+                    "updates in Settings: it asks GitHub whether a newer version exists. It " +
+                    "sends nothing — no diary, no identifier, not even a record that you asked.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 14.dp),
@@ -1051,6 +1064,11 @@ fun SettingsScreen(
                 Spacer(Modifier.height(6.dp))
                 CustomPaletteEditor(palette = custom, onChange = onSetCustomPalette)
             }
+
+            Spacer(Modifier.height(28.dp))
+            HorizontalDivider()
+            // Last, because it is housekeeping rather than configuration.
+            UpdateRow()
         }
     }
 }
