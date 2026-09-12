@@ -14,6 +14,7 @@ import dev.mahourigan.fooddiary.domain.FacetOption
 import dev.mahourigan.fooddiary.domain.Ingredient
 import dev.mahourigan.fooddiary.domain.MealEntry
 import dev.mahourigan.fooddiary.domain.MealItem
+import dev.mahourigan.fooddiary.domain.Measures
 import dev.mahourigan.fooddiary.domain.MedEntry
 import dev.mahourigan.fooddiary.domain.Recipe
 import dev.mahourigan.fooddiary.domain.StoolEntry
@@ -304,6 +305,22 @@ class LocalDiaryRepository(private val file: File) {
                     roles = ingredient.roles + seeded.roles,
                     aliases = (ingredient.aliases + seeded.aliases).distinct(),
                 )
+            }.map { ingredient ->
+                // 15 -> 16: a single grams-per-spoon figure becomes a density.
+                //
+                // Every ingredient measured by volume already carried what one
+                // of its own unit weighed -- 5 g per tablespoon of nooch. That
+                // is really 0.33 g/ml, and a density answers teaspoons and cups
+                // as well, including units nobody has added yet. Recovering it
+                // is pure arithmetic over a figure already present, so nothing
+                // is invented and no existing entry changes meaning.
+                //
+                // Runs for edited ingredients too, unlike the adoptions above:
+                // this is not the seed pushing new opinions onto your data, it
+                // is the same number written in a more useful form.
+                if (ingredient.densityGPerMl != null) return@map ingredient
+                val density = Measures.impliedDensity(ingredient) ?: return@map ingredient
+                ingredient.copy(densityGPerMl = density)
             },
             retiredIngredientIds = stored.retiredIngredientIds.map(::rename).toSet(),
         )

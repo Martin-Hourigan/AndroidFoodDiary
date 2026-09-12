@@ -72,8 +72,29 @@ data class Ingredient(
      *
      * This is what turns "2 slices" into grams and therefore into calories. For
      * an ingredient already measured in g or ml it's 1.
+     *
+     * Only meaningful for a *count*: a thing has no volume you can infer, so
+     * each one needs its own weight. Anything spooned or poured uses
+     * [densityGPerMl] instead, which answers every volume at once.
      */
     val gramsPerUnit: Double? = null,
+
+    /**
+     * Grams per millilitre, for anything measured by volume.
+     *
+     * The reason this is a density rather than a weight-per-spoon: a tablespoon
+     * is 15 ml whatever is in it, so one number answers teaspoons, tablespoons
+     * and cups together — including a unit nobody has added yet. Storing grams
+     * per tablespoon would mean storing grams per teaspoon separately, and they
+     * could then drift apart.
+     *
+     * It is also the only honest way to say that a tablespoon of chives (3 g)
+     * and a tablespoon of maple syrup (20 g) are both tablespoons. Chives are
+     * 0.2 g/ml and syrup is 1.33; the unit never carried the weight.
+     *
+     * Null for anything counted or weighed, where volume means nothing.
+     */
+    val densityGPerMl: Double? = null,
 
     /** True for anything you added or edited, so a reseed never overwrites it. */
     val isUserCreated: Boolean = false,

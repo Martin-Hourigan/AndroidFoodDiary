@@ -21,6 +21,11 @@ import dev.mahourigan.fooddiary.domain.Attributes
 import dev.mahourigan.fooddiary.domain.TextSize
 import dev.mahourigan.fooddiary.domain.Ingredient
 import dev.mahourigan.fooddiary.domain.MealItem
+import dev.mahourigan.fooddiary.domain.Measures
+import dev.mahourigan.fooddiary.domain.MeasureKind
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import dev.mahourigan.fooddiary.domain.Portion
 import dev.mahourigan.fooddiary.domain.Recipe
 import dev.mahourigan.fooddiary.domain.Roles
@@ -347,8 +352,15 @@ fun RecipeEditScreen(
                         headlineContent = { Text(ingredient.name) },
                         supportingContent = { AttributeRow(ingredient.attributes, max = 5) },
                         modifier = Modifier.clickable {
-                            items = items + MealItem(ingredientId = ingredient.id)
+                            val added = MealItem(ingredientId = ingredient.id)
+                            items = items + added
                             query = ""
+                            // Asked straight away, while you still remember what
+                            // went in. The row is already in the recipe, so this
+                            // is a follow-up rather than a gate -- dismissing it
+                            // leaves the ingredient with no amount, which is a
+                            // perfectly good answer.
+                            portionFor = added
                         },
                     )
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
@@ -507,33 +519,103 @@ private fun RecipePortionDialog(
     onDismiss: () -> Unit,
     onSet: (Portion?) -> Unit,
 ) {
-    var amount by remember { mutableStateOf(portion?.amount?.let { trimAmount(it) } ?: "") }
-    val unit = portion?.unit ?: ingredient?.defaultUnit
+    // Every way this ingredient can be measured, suggestion first. Grams are
+    // always among them, because weighing needs no knowledge of what a thing is.
+    val measures = remember(ingredient) {
+        ingredient?.let { Measures.of(it) }.orEmpty()
+    }
+
+    // Reopening on an amount already set puts you back on the unit you used,
+    // not on the ingredient's suggestion.
+    var selected by remember(ingredient, portion) {
+        mutableStateOf(
+            measures.firstOrNull { m -> portion?.unit?.equals(m.unit, ignoreCase = true) == true }
+                ?: measures.firstOrNull(),
+        )
+    }
+    var typed by remember(ingredient) { mutableStateOf(portion?.amount?.let { trimAmount(it) } ?: "") }
+
+    val measure = selected
+    val chips = remember(ingredient, measure) {
+        if (ingredient != null && measure != null) Measures.quickAmounts(ingredient, measure) else emptyList()
+    }
+
+    fun commit(amount: Double) = onSet(Portion.of(amount, measure?.unit))
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(name) },
         text = {
             Column {
+                if (measures.size > 1) {
+                    // One joined control, not a row of separate chips: these are
+                    // positions of one thing, not several things you could tick.
+                    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                        measures.forEachIndexed { index, option ->
+                            SegmentedButton(
+                                selected = option == measure,
+                                onClick = { selected = option },
+                                shape = SegmentedButtonDefaults.itemShape(index, measures.size),
+                            ) {
+                                Text(option.unit, style = MaterialTheme.typography.labelMedium)
+                            }
+                        }
+                    }
+                    Spacer(Modifier.height(6.dp))
+                }
+
+                // What one of the chosen unit weighs, so a derived spoon is not
+                // a mystery. Silent for grams, where it would say "1 g is 1 g".
+                measure?.takeIf { it.kind != MeasureKind.WEIGHT }?.let { m ->
+                    Text(
+                        "1 ${m.unit} of this is about ${trimAmount(m.gramsEach)} g" +
+                            if (m.isDerived) " — worked out from its density" else "",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.height(8.dp))
+                }
+
                 Text(
-                    if (unit != null) "How much, in $unit — optional" else "How much — optional",
+                    if (measure == null) "How much — optional" else "How much — optional",
                     style = MaterialTheme.typography.labelMedium,
                 )
-                Spacer(Modifier.height(6.dp))
+                Spacer(Modifier.height(8.dp))
+
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    chips.forEach { amount ->
+                        val label = trimAmount(amount) + if (measure?.unit == "g") " g" else ""
+                        FilterChip(
+                            selected = typed == trimAmount(amount),
+                            onClick = { commit(amount) },
+                            label = { Text(label) },
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(10.dp))
                 OutlinedTextField(
-                    value = amount,
-                    onValueChange = { amount = it.filter { c -> c.isDigit() || c == '.' } },
+                    value = typed,
+                    onValueChange = { typed = it.filter { c -> c.isDigit() || c == '.' } },
+                    label = { Text(measure?.unit ?: "amount") },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.fillMaxWidth(),
                 )
             }
         },
         confirmButton = {
-            TextButton(onClick = { onSet(amount.toDoubleOrNull()?.let { Portion.of(it, unit) }) }) { Text("Set") }
+            TextButton(
+                enabled = typed.toDoubleOrNull() != null,
+                onClick = { typed.toDoubleOrNull()?.let(::commit) },
+            ) { Text("Set") }
         },
         dismissButton = {
             Row {
-                TextButton(onClick = { onSet(null) }) { Text("Nothing") }
+                // Skip writes nothing rather than writing "normal". Defaulting
+                // it would invent a number nobody gave, and the analysis would
+                // then reason from it.
+                TextButton(onClick = { onSet(null) }) { Text("Skip") }
                 TextButton(onClick = onDismiss) { Text("Cancel") }
             }
         },

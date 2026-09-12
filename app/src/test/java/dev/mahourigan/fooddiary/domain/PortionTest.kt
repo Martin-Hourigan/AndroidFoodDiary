@@ -38,6 +38,26 @@ class PortionTest {
     }
 
     @Test
+    fun `the same dose in two units lands in the same bucket`() {
+        // What converting through grams buys. Nooch suggests grams, but you can
+        // record spoons, and 6 tsp is 30 g either way -- so both are "lots"
+        // against a typical of 15 g. Before this, a unit that was not the
+        // ingredient's own simply refused to bucket.
+        val nooch = Ingredient(
+            id = "nutritional-yeast", name = "Nutritional yeast",
+            defaultUnit = "g", typicalAmount = 15.0,
+            gramsPerUnit = 1.0, densityGPerMl = 5.0 / 15.0,
+        )
+        // One tablespoon of nooch is 5 g, so 6 of them is the 30 g above.
+        assertEquals(PortionSize.LOTS, Portion.of(30.0, "g").bucket(nooch))
+        assertEquals(PortionSize.LOTS, Portion.of(6.0, "tbsp").bucket(nooch))
+
+        assertEquals(PortionSize.NORMAL, Portion.of(3.0, "tbsp").bucket(nooch))   // 15 g
+        assertEquals(PortionSize.LITTLE, Portion.of(1.0, "tbsp").bucket(nooch))   // 5 g
+        assertEquals(PortionSize.LITTLE, Portion.of(1.0, "tsp").bucket(nooch))    // 1.7 g
+    }
+
+    @Test
     fun `boundaries are inclusive at half and double`() {
         assertEquals(PortionSize.LITTLE, Portion.of(0.5, "clove").bucket(garlic))
         assertEquals(PortionSize.LOTS, Portion.of(2.0, "clove").bucket(garlic))

@@ -315,7 +315,7 @@ object SeedEnergy {
         "stock-cube" to (250.0 to 10.0),
         "stock-low-fodmap" to (4.0 to 1.0),
         "vegemite" to (185.0 to 5.0),
-        "nutritional-yeast" to (325.0 to 5.0),
+        "nutritional-yeast" to (325.0 to 1.0),
         "tomato-ketchup" to (101.0 to 17.0),
         "mustard" to (66.0 to 5.0),
         "vinegar-balsamic" to (88.0 to 16.0),

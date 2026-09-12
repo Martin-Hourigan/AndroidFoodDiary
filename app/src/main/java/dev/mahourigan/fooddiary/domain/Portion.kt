@@ -59,15 +59,25 @@ fun Portion?.bucket(ingredient: Ingredient): PortionSize? {
     val typical = ingredient.typicalAmount ?: return null
     if (typical <= 0.0) return null
 
-    // Only comparable in the ingredient's own unit. "2 cloves" against a typical
-    // of 1 clove is a real doubling; "2 g" against it is not, and guessing at a
-    // conversion would be worse than admitting we don't know.
+    // Same unit on both sides needs no conversion at all: one slice against a
+    // typical of two is a ratio whatever a slice happens to weigh, and asking
+    // for grams first would refuse to bucket an ingredient nobody has weighed.
     val unit = portion.unit
-    if (unit != null && ingredient.defaultUnit != null && !unit.equals(ingredient.defaultUnit, ignoreCase = true)) {
-        return null
-    }
+    val sameUnit = unit == null || ingredient.defaultUnit == null ||
+        unit.equals(ingredient.defaultUnit, ignoreCase = true)
 
-    val ratio = amount / typical
+    val ratio = if (sameUnit) {
+        amount / typical
+    } else {
+        // Different units, so go through grams. 30 g of nutritional yeast and
+        // 6 tsp of it are the same dose and belong in the same bucket. Only a
+        // conversion the app genuinely does not know returns null -- which is
+        // still the honest answer for "2 cloves" of something that isn't garlic.
+        val amountGrams = Measures.toGrams(amount, unit, ingredient) ?: return null
+        val typicalGrams = Measures.toGrams(typical, ingredient.defaultUnit, ingredient) ?: return null
+        if (typicalGrams <= 0.0) return null
+        amountGrams / typicalGrams
+    }
     return when {
         ratio <= 0.5 -> PortionSize.LITTLE
         ratio >= 2.0 -> PortionSize.LOTS

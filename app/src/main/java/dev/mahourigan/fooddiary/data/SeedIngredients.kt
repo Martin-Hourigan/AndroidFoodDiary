@@ -33,6 +33,7 @@ import dev.mahourigan.fooddiary.domain.Attributes.Sweetener
 import dev.mahourigan.fooddiary.domain.Attributes.TreeNut
 import dev.mahourigan.fooddiary.domain.Attributes.Wheat
 import dev.mahourigan.fooddiary.domain.Ingredient
+import dev.mahourigan.fooddiary.domain.Measures
 import dev.mahourigan.fooddiary.domain.Role
 import dev.mahourigan.fooddiary.domain.Roles
 
@@ -73,20 +74,40 @@ object SeedIngredients {
         typical: Double? = null,
         aliases: List<String> = emptyList(),
         roles: Set<Role> = emptySet(),
-    ) = Ingredient(
-        id = slug(name),
-        name = name,
-        attributes = attributes,
-        roles = roles,
-        aliases = aliases,
-        defaultUnit = unit,
-        typicalAmount = typical,
-        // Kept in its own file so the tagging stays readable here. A test
-        // asserts every ingredient is covered, so the two can't drift apart.
-        kcalPer100 = SeedEnergy.values[slug(name)]?.first,
-        gramsPerUnit = SeedEnergy.values[slug(name)]?.second,
-        isUserCreated = false,
-    )
+        /**
+         * Grams per millilitre, for anything spooned or poured whose suggested
+         * unit is *not* a volume.
+         *
+         * Anything already measured in spoons or cups has its density worked
+         * out below from the figure in [SeedEnergy], so this only needs filling
+         * in for the awkward ones: a powder best suggested in grams, which the
+         * app should still be able to offer a tablespoon of.
+         */
+        density: Double? = null,
+    ): Ingredient {
+        val energy = SeedEnergy.values[slug(name)]
+        val gramsPerUnit = energy?.second
+        return Ingredient(
+            id = slug(name),
+            name = name,
+            attributes = attributes,
+            roles = roles,
+            aliases = aliases,
+            defaultUnit = unit,
+            typicalAmount = typical,
+            // Kept in its own file so the tagging stays readable here. A test
+            // asserts every ingredient is covered, so the two can't drift apart.
+            kcalPer100 = energy?.first,
+            gramsPerUnit = gramsPerUnit,
+            // A unit that is already a volume carries its own density: 5 g per
+            // tablespoon is 0.33 g/ml, and that answers teaspoons and cups too.
+            // Derived rather than typed out so the two figures cannot disagree.
+            densityGPerMl = density ?: Measures.millilitresIn(unit.orEmpty())
+                ?.takeIf { it > 0 && (gramsPerUnit ?: 0.0) > 0 }
+                ?.let { gramsPerUnit!! / it },
+            isUserCreated = false,
+        )
+    }
 
     fun slug(name: String): String = name.lowercase()
         .map { if (it.isLetterOrDigit()) it else '-' }
@@ -407,7 +428,7 @@ object SeedIngredients {
         add(ing("Stock cube", setOf(Allium, Fructan, Gluten, Wheat), unit = "cube", typical = 1.0, aliases = listOf("bouillon"), roles = setOf(Roles.Sauce)))
         add(ing("Stock, low-FODMAP", unit = "ml", typical = 250.0, roles = setOf(Roles.Sauce)))
         add(ing("Vegemite", setOf(Barley, Gluten), unit = "tsp", typical = 1.0, aliases = listOf("marmite", "promite", "yeast extract", "yeast extract spread"), roles = setOf(Roles.Spread)))
-        add(ing("Nutritional yeast", unit = "tbsp", typical = 1.0, aliases = listOf("nooch", "savoury yeast flakes"), roles = setOf(Roles.Sauce)))
+        add(ing("Nutritional yeast", unit = "g", typical = 15.0, density = 5.0 / 15.0, aliases = listOf("nooch", "savoury yeast flakes"), roles = setOf(Roles.Sauce)))
         add(ing("Tomato ketchup", setOf(Nightshade, ExcessFructose), unit = "tbsp", typical = 1.0, roles = setOf(Roles.Sauce)))
         add(ing("Mustard", unit = "tsp", typical = 1.0, roles = setOf(Roles.Sauce)))
         add(ing("Vinegar, balsamic", setOf(Fermented, Histamine, Sulphite), unit = "tbsp", typical = 1.0, roles = setOf(Roles.Sauce)))

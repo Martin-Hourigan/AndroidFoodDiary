@@ -9,10 +9,12 @@ import dev.mahourigan.fooddiary.domain.Basis
 import dev.mahourigan.fooddiary.domain.Ingredient
 import dev.mahourigan.fooddiary.domain.MealEntry
 import dev.mahourigan.fooddiary.domain.MealItem
+import dev.mahourigan.fooddiary.domain.Measures
 import dev.mahourigan.fooddiary.domain.Recipe
 import dev.mahourigan.fooddiary.domain.resolve
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -44,6 +46,36 @@ class MigrationTest {
             load()
             snapshot.value
         }
+    }
+
+    @Test
+    fun `a spoon conversion becomes a density the whole library can use`() = runTest {
+        // 15 -> 16. The figure was already there: 14 g per tablespoon of olive
+        // oil. Written as a density it is 0.93 g/ml, which also answers
+        // teaspoons and cups -- and happens to be the right number for oil,
+        // which is a useful sign the seeded figures were not invented.
+        val v15 = """
+            {
+              "schemaVersion": 15,
+              "ingredients": [
+                {"id":"olive-oil","name":"Olive oil","defaultUnit":"tbsp","gramsPerUnit":14.0},
+                {"id":"garlic","name":"Garlic","defaultUnit":"clove","gramsPerUnit":3.0}
+              ],
+              "recipes": [], "meals": [], "seedVersion": 4
+            }
+        """.trimIndent()
+
+        val loaded = loadFrom(v15)
+        val oil = loaded.ingredients.first { it.id == "olive-oil" }
+        assertEquals(0.933, oil.densityGPerMl!!, 0.001)
+
+        // A teaspoon nobody entered now answers correctly.
+        assertEquals(4.67, Measures.gramsIn("tsp", oil)!!, 0.01)
+
+        // A clove is not a volume, so garlic gets no density and no spoons.
+        val garlic = loaded.ingredients.first { it.id == "garlic" }
+        assertNull(garlic.densityGPerMl)
+        assertNull(Measures.gramsIn("tbsp", garlic))
     }
 
     @Test

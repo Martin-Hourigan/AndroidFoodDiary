@@ -114,7 +114,7 @@ data class DiarySnapshot(
          * a set of flat tags, shared with ingredients. Splitting on the slash
          * keeps both halves as tags, so browsing either still finds it.
          */
-        const val CURRENT_SCHEMA = 15
+        const val CURRENT_SCHEMA = 16
 
         /** Options dropped from the bundled categories. Still in the library. */
         val DROPPED_CATEGORY_OPTIONS: Set<String> = setOf(
