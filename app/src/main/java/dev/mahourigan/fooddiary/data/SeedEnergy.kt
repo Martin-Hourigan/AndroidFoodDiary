@@ -322,6 +322,7 @@ object SeedEnergy {
         "vinegar-white-wine" to (19.0 to 15.0),
         "vinegar-apple-cider" to (21.0 to 15.0),
         "hot-sauce" to (11.0 to 5.0),
+        "sweet-chilli-sauce" to (292.0 to 18.0),
         "sriracha" to (93.0 to 5.0),
         "curry-paste" to (150.0 to 16.0),
         "pesto" to (450.0 to 15.0),

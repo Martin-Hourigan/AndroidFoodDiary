@@ -490,11 +490,77 @@ class MigrationTest {
             ),
             seedVersion = SeedIngredients.VERSION,
             categorySeedVersion = SeedCategories.VERSION,
+            recipeSeedVersion = StarterRecipes.VERSION,
         )
 
         val loaded = loadFrom(json.encodeToString(current))
 
         assertEquals(current.meals, loaded.meals)
         assertEquals(current.recipes, loaded.recipes)
+    }
+
+    /**
+     * The starter recipes as they stood when the recipe merge arrived, in
+     * schema 17.
+     *
+     * A historical fact, so it is written out rather than read from
+     * [StarterRecipes.all] -- the point of these tests is what happens when
+     * that list has moved on.
+     */
+    private val startersAtMerge = listOf(
+        "starter-cafe-scramble",
+        "starter-cafe-mushrooms",
+        "starter-greek-salad",
+        "starter-dhal",
+        "starter-pasta-pesto",
+        "starter-cheese-toastie",
+    )
+
+    private fun v16(recipeIds: List<String>): String {
+        val recipes = recipeIds.joinToString(", ") {
+            """{"id": "$it", "name": "$it", "items": []}"""
+        }
+        return """
+            {
+              "schemaVersion": 16,
+              "ingredients": [], "meals": [],
+              "seedVersion": 99, "categorySeedVersion": 99,
+              "recipes": [$recipes]
+            }
+        """.trimIndent()
+    }
+
+    @Test
+    fun `upgrading does not bring back a starter recipe you deleted`() = runTest {
+        // Nothing recorded recipe deletions before schema 17: a diary that
+        // threw one out simply does not contain it, and there is no retired
+        // set to consult. The migration reads the absence as the deletion it
+        // was and writes it down, which is what keeps the recipe gone once the
+        // merge starts running.
+        val thrownOut = "starter-greek-salad"
+        val kept = startersAtMerge.filterNot { it == thrownOut } + "mine"
+
+        val loaded = loadFrom(v16(kept))
+
+        assertFalse(loaded.recipes.any { it.id == thrownOut })
+        assertTrue(thrownOut in loaded.retiredRecipeIds)
+        assertTrue(loaded.recipes.any { it.id == "mine" })
+        assertEquals(StarterRecipes.VERSION, loaded.recipeSeedVersion)
+    }
+
+    @Test
+    fun `a recipe added since the merge reaches a diary that already exists`() = runTest {
+        // The other half of the same decision. An existing diary is stamped
+        // with the version the merge arrived at rather than the current one,
+        // so anything added to the seed afterwards -- including in the very
+        // release that introduced the merge -- still lands.
+        val loaded = loadFrom(v16(startersAtMerge))
+
+        assertEquals(
+            StarterRecipes.all.map { it.id }.toSet(),
+            loaded.recipes.map { it.id }.toSet(),
+        )
+        assertEquals(emptySet<String>(), loaded.retiredRecipeIds)
+        assertEquals(StarterRecipes.VERSION, loaded.recipeSeedVersion)
     }
 }

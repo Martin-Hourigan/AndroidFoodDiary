@@ -72,6 +72,7 @@ class LocalDiaryRepository(private val file: File) {
                 categories = SeedCategories.all,
                 seedVersion = SeedIngredients.VERSION,
                 categorySeedVersion = SeedCategories.VERSION,
+                recipeSeedVersion = StarterRecipes.VERSION,
             )
 
             // A newer build with more in the bundled library merges the additions
@@ -82,6 +83,12 @@ class LocalDiaryRepository(private val file: File) {
                     merged = merged.copy(
                         ingredients = SeedIngredients.mergeInto(merged.ingredients, merged.retiredIngredientIds),
                         seedVersion = SeedIngredients.VERSION,
+                    )
+                }
+                if (merged.recipeSeedVersion < StarterRecipes.VERSION) {
+                    merged = merged.copy(
+                        recipes = StarterRecipes.mergeInto(merged.recipes, merged.retiredRecipeIds),
+                        recipeSeedVersion = StarterRecipes.VERSION,
                     )
                 }
                 if (merged.categorySeedVersion < SeedCategories.VERSION) {
@@ -323,6 +330,27 @@ class LocalDiaryRepository(private val file: File) {
                 ingredient.copy(densityGPerMl = density)
             },
             retiredIngredientIds = stored.retiredIngredientIds.map(::rename).toSet(),
+
+            // 16 -> 17: recipes gain the versioned merge the ingredients have
+            // had for a while.
+            //
+            // The stamp is the version the merge arrived at, not the current
+            // one, so a recipe added in this same release still reaches a diary
+            // that already exists. Stamping [StarterRecipes.VERSION] instead
+            // would be simpler and would mean the first batch of recipes only
+            // ever appeared on a fresh install.
+            //
+            // What that costs is the deletions: nothing recorded them before
+            // now, so every starter recipe thrown out would come straight back.
+            // They are recoverable, though. A fresh install seeded the whole
+            // starter set, so any one of [StarterRecipes.ID_AT_MERGE] missing
+            // from an existing diary was deleted on purpose. Retiring exactly
+            // those reconstructs the deletions this field should have been
+            // recording all along -- and only those, since a recipe added
+            // after the merge is missing for the ordinary reason.
+            recipeSeedVersion = StarterRecipes.VERSION_AT_MERGE,
+            retiredRecipeIds = stored.retiredRecipeIds +
+                StarterRecipes.ID_AT_MERGE.filterNot { id -> recipes.any { it.id == id } },
         )
     }
 
@@ -427,7 +455,15 @@ class LocalDiaryRepository(private val file: File) {
         // Logged meals keep their own copy of the items and their basis
         // snapshot, so deleting a recipe can never damage the log. That is the
         // whole reason entries are stored resolved.
-        state.copy(recipes = state.recipes.filterNot { it.id == id })
+        //
+        // Retiring it as well, so a later release that adds recipes does not
+        // bring this one back. Recorded for user-created recipes too: the set
+        // is only ever consulted against the bundled ids, and keeping the rule
+        // simple beats saving a few bytes.
+        state.copy(
+            recipes = state.recipes.filterNot { it.id == id },
+            retiredRecipeIds = state.retiredRecipeIds + id,
+        )
     }
 
     // ---- Categories ---------------------------------------------------------

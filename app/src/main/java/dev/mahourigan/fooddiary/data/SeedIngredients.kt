@@ -63,7 +63,7 @@ import dev.mahourigan.fooddiary.domain.Roles
 object SeedIngredients {
 
     /** Bumped when entries are added; merged in without touching your edits. */
-    const val VERSION = 4
+    const val VERSION = 5
 
     // A set rather than a vararg: Attribute is an inline value class, and Kotlin
     // won't take those as varargs. setOf(...) at each call site is the cost.
@@ -436,6 +436,7 @@ object SeedIngredients {
         add(ing("Vinegar, apple cider", setOf(Fermented, Histamine), unit = "tbsp", typical = 1.0, roles = setOf(Roles.Sauce)))
         add(ing("Hot sauce", setOf(Capsaicin, Nightshade, Fermented), unit = "tsp", typical = 1.0, roles = setOf(Roles.Sauce)))
         add(ing("Sriracha", setOf(Capsaicin, Nightshade, Allium, Fructan), unit = "tsp", typical = 1.0, roles = setOf(Roles.Sauce)))
+        add(ing("Sweet chilli sauce", setOf(Capsaicin, Nightshade, Allium, Fructan, ExcessFructose), unit = "tbsp", typical = 1.0, roles = setOf(Roles.Sauce)))
         add(ing("Curry paste", setOf(Capsaicin, Allium, Fructan), unit = "tbsp", typical = 1.0, roles = setOf(Roles.Sauce)))
         add(ing("Pesto", setOf(TreeNut, Dairy, HighFat, Allium), unit = "tbsp", typical = 2.0, roles = setOf(Roles.Sauce)))
         add(ing("Pasta sauce, jarred", setOf(Nightshade, Allium, Fructan, Histamine), unit = "g", typical = 150.0, roles = setOf(Roles.Sauce)))

@@ -51,6 +51,16 @@ data class DiarySnapshot(
     val categorySeedVersion: Int = 0,
 
     /**
+     * Bundled recipe version, merged in the same way as the ingredients.
+     *
+     * Recipes used to be seeded on a fresh diary and never again, so a release
+     * carrying new saved meals delivered them to new installs only. Everyone
+     * already using the app — the only people with a reason to want more
+     * recipes — got nothing.
+     */
+    val recipeSeedVersion: Int = 0,
+
+    /**
      * Seed ingredients you've deleted.
      *
      * Kept so a later version adding more to the bundled library doesn't
@@ -59,6 +69,15 @@ data class DiarySnapshot(
      * broken.
      */
     val retiredIngredientIds: Set<String> = emptySet(),
+
+    /**
+     * Seed recipes you've deleted.
+     *
+     * The same promise [retiredIngredientIds] makes, for the same reason: a
+     * release that adds recipes must not quietly put back the ones you threw
+     * out.
+     */
+    val retiredRecipeIds: Set<String> = emptySet(),
 ) {
     /** The lookup everything in the domain layer wants; built once per snapshot. */
     val ingredientsById: Map<String, Ingredient> by lazy { ingredients.associateBy { it.id } }
@@ -114,7 +133,7 @@ data class DiarySnapshot(
          * a set of flat tags, shared with ingredients. Splitting on the slash
          * keeps both halves as tags, so browsing either still finds it.
          */
-        const val CURRENT_SCHEMA = 16
+        const val CURRENT_SCHEMA = 17
 
         /** Options dropped from the bundled categories. Still in the library. */
         val DROPPED_CATEGORY_OPTIONS: Set<String> = setOf(
