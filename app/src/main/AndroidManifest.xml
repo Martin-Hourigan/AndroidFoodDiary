@@ -1,14 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!--
-      Deliberately no INTERNET permission. The analysis is arithmetic over the
-      local log and there is no food database to look anything up in, so the app
-      has nothing to say to the network and cannot leak a health diary.
-    -->
-
     <!-- The only network this app does: asking GitHub whether a newer build
-         exists, and fetching it. Nothing is uploaded and nothing is tracked. -->
+         exists, and fetching it, and only when asked. The analysis is
+         arithmetic over the local log and there is no food database to look
+         anything up in, so the diary itself never goes near the network.
+         Nothing is uploaded and nothing is tracked. -->
     <uses-permission android:name="android.permission.INTERNET" />
 
     <!-- Needed to hand a downloaded APK to the system installer. It does not
