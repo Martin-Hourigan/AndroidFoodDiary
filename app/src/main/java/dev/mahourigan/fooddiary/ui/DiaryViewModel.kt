@@ -7,6 +7,9 @@ import dev.mahourigan.fooddiary.data.SeedIngredients
 import dev.mahourigan.fooddiary.domain.Attribute
 import dev.mahourigan.fooddiary.domain.Basis
 import dev.mahourigan.fooddiary.domain.Category
+import dev.mahourigan.fooddiary.domain.CycleStatus
+import dev.mahourigan.fooddiary.domain.Cycles
+import dev.mahourigan.fooddiary.domain.Flow
 import dev.mahourigan.fooddiary.domain.Facet
 import dev.mahourigan.fooddiary.domain.FacetOption
 import dev.mahourigan.fooddiary.domain.DayEvent
@@ -186,6 +189,11 @@ data class UiState(
     val open: List<SymptomEntry> get() = openEpisodes(snapshot.symptoms)
 
     val dayLog: DayLog get() = snapshot.dayLog(date)
+
+    /** Where the day being shown sits in its cycle; null with nothing logged. */
+    val cycleStatus: CycleStatus? get() = Cycles.status(snapshot.periodDays, date)
+
+    fun flowOn(day: LocalDate): Flow? = snapshot.periodDays.firstOrNull { it.date == day }?.flow
 
     /** Every tag in use, so a second spelling of "Cafe" is one tap away from not happening. */
     fun knownTags(): List<String> =
@@ -677,6 +685,10 @@ class DiaryViewModel(app: Application) : AndroidViewModel(app) {
     // ---- Day log ------------------------------------------------------------
 
     fun saveDayLog(day: DayLog) = viewModelScope.launch { repository.upsertDayLog(day) }
+
+    // ---- Cycle --------------------------------------------------------------
+
+    fun setFlow(date: LocalDate, flow: Flow?) = viewModelScope.launch { repository.setFlow(date, flow) }
 
     // ---- Library ------------------------------------------------------------
 

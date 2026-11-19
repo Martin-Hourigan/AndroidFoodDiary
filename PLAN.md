@@ -970,6 +970,57 @@ antispasmodic taken *after* symptoms start must not end up looking like a cause.
 Without any of this the ranking will cheerfully blame last night's dinner for a
 bad night's sleep, and you'll cut a food for nothing.
 
+### Cycle
+
+The day card used to carry a hand-picked phase chip — Period / Follicular /
+Ovulation / Luteal. It went, because almost nobody can say on a given day
+which of the last three they are in, and a guessed phase is worse data than
+none. What replaced it records the one thing that can be known and counts the
+rest:
+
+```kotlin
+@Serializable
+data class PeriodDay(val date: LocalDate, val flow: Flow?)   // Spotting | Light | Medium | Heavy
+```
+
+One entry per bleed day, in `DiarySnapshot.periodDays`. Everything else is
+`domain/Cycle.kt`, pure arithmetic like the rest:
+
+- **Periods** are runs of bleed days, allowing a two-day gap — a skipped day
+  mid-period is a day the app wasn't opened. **Spotting neither starts nor
+  stretches one**, or mid-cycle spotting splits one cycle into two short ones.
+- **Prediction** is the median of the last six cycle lengths laid forward from
+  the last start, shown as the range of those lengths and always with its `n`.
+  Nothing until one full cycle is logged: a textbook 28 days would look like
+  your number and isn't. Lengths outside 15–60 days are left out — far more
+  often a month nobody logged than a real cycle — but still shown in the
+  history, marked.
+- **Phase** is a fact during a logged bleed and an estimate otherwise, and says
+  so. Ovulation is counted *back* fourteen days from the next start, since the
+  luteal half is the steady one; past cycles are placed against the start that
+  actually came, not a prediction. Late, or with only one period, it gives the
+  cycle day and no phase rather than a confident wrong one.
+
+Period pain, lower back ache and breast tenderness are ordinary symptom types,
+not a second system, so they land on the same scale the analysis reads.
+
+That matters because **the cycle is a confounder, and a big one.** Periods
+bring bloating, cramping and looser stools on their own, so without this the
+ranking would pin a week of hormonal gut symptoms on whatever was eaten that
+week. When the analysis lands (step 4), `Cycles.status` gives each day its
+phase so suspects can be checked for leaning on one part of the cycle, the same
+way they are for sleep.
+
+Reached from a drop in the bottom bar: a month calendar, tap a day, tap its
+flow — saved on the tap, no form. Predicted days are outlined, never filled, so
+nothing that hasn't happened can be mistaken for something that has.
+
+**Modules, later.** Cycle tracking may become something you opt into, along
+with the food diary itself, so the app is not one big wad of everything. It is
+kept separable for that: its own file, its own list in the snapshot, nothing in
+the meal code knowing it exists. Making it optional is then a setting and a
+hidden circle, not a refactor.
+
 ### Trial — the part that actually answers the question
 
 ```kotlin
@@ -1087,6 +1138,7 @@ to it beats a caveat every time.
 | **Recipes** | The library. Edit, favourite, duplicate. |
 | **Ingredients** | Names, aliases, attributes, default unit. Editable — the seed data will be wrong about something you eat. |
 | **Insights** | Suspect ranking, base rates, and per-candidate detail: exposures plotted against symptom load. |
+| **Cycle** | A month calendar. Tap a day, tap its flow. Cycle day, estimated phase and the next likely start, with how many cycles that rests on. |
 | **Trials** | Set up, run, review. Adherence and phase comparison. |
 | **Settings** | Energy unit, text size, style, light/dark. Reached by the cog on the day screen. Reminders, import and custom symptoms still to come. |
 
@@ -1135,6 +1187,12 @@ WorkManager and no extra permissions.
 readable date-range summary — meals, symptom load, trial adherence — to hand to a
 GP or dietitian. That's the real destination of this data, and it shouldn't
 require a montage of screenshots.
+
+The summary should include cycle data (period dates, phase alongside symptom
+load), since it explains so much of a gut pattern, but behind **its own switch
+in the export options** — it is the most personal thing in the file, and who
+the summary goes to is not always someone who needs it. The raw `diary.json`
+backup always carries it; a backup that drops data is not a backup.
 
 ## Storage
 

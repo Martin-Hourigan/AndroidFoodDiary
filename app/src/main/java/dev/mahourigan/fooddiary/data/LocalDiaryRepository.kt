@@ -16,6 +16,9 @@ import dev.mahourigan.fooddiary.domain.MealEntry
 import dev.mahourigan.fooddiary.domain.MealItem
 import dev.mahourigan.fooddiary.domain.Measures
 import dev.mahourigan.fooddiary.domain.MedEntry
+import dev.mahourigan.fooddiary.domain.CyclePhase
+import dev.mahourigan.fooddiary.domain.Flow
+import dev.mahourigan.fooddiary.domain.PeriodDay
 import dev.mahourigan.fooddiary.domain.Recipe
 import dev.mahourigan.fooddiary.domain.StoolEntry
 import dev.mahourigan.fooddiary.domain.SymptomEntry
@@ -28,6 +31,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import java.io.File
+import java.time.LocalDate
 import java.time.LocalDateTime
 
 /**
@@ -246,9 +250,24 @@ class LocalDiaryRepository(private val file: File) {
             stored.settings
         }
 
+        // 17 -> 18: "period" picked on the day card becomes a bleed day. Flow is
+        // left unrecorded rather than guessed. The chip's other phases stay on
+        // the day log as written; they were never a logged bleed, so they don't
+        // become one, and the derived phase replaces them on screen.
+        val fromChip = stored.days.filter { it.cyclePhase == CyclePhase.PERIOD }
+        val logged = stored.periodDays.map { it.date }.toSet()
+        val periodDays = stored.periodDays + fromChip
+            .filterNot { it.date in logged }
+            .map { PeriodDay(date = it.date, flow = null) }
+        val days = stored.days
+            .map { if (it.cyclePhase == CyclePhase.PERIOD) it.copy(cyclePhase = null) else it }
+            .filterNot { it.isEmpty }
+
         return stored.copy(
             schemaVersion = DiarySnapshot.CURRENT_SCHEMA,
             settings = settings,
+            days = days,
+            periodDays = periodDays.sortedBy { it.date },
             categories = categories,
             meals = meals.map { meal ->
                 meal.copy(
@@ -443,6 +462,15 @@ class LocalDiaryRepository(private val file: File) {
         // analysis has to be able to tell a missing answer from a zero.
         val without = state.days.filterNot { it.date == day.date }
         state.copy(days = if (day.isEmpty) without else without + day)
+    }
+
+    // ---- Cycle --------------------------------------------------------------
+
+    /** Sets a day's flow, or clears the day with null. One entry per date. */
+    suspend fun setFlow(date: LocalDate, flow: Flow?) = mutate { state ->
+        val without = state.periodDays.filterNot { it.date == date }
+        val updated = if (flow == null) without else without + PeriodDay(date = date, flow = flow)
+        state.copy(periodDays = updated.sortedBy { it.date })
     }
 
     // ---- Recipes ------------------------------------------------------------

@@ -101,7 +101,7 @@ class MainActivity : ComponentActivity() {
 }
 
 private enum class Screen {
-    TODAY, LOG_MEAL, LOG_SYMPTOM, LOG_STOOL, DAY_LOG,
+    TODAY, LOG_MEAL, LOG_SYMPTOM, LOG_STOOL, DAY_LOG, CYCLE,
     LIBRARY, CATEGORIES, CATEGORY_EDIT, RECIPES, RECIPE_EDIT,
     INGREDIENTS, INGREDIENT_EDIT, EXPORT, SETTINGS,
 }
@@ -183,6 +183,10 @@ private fun FoodDiaryApp(viewModel: DiaryViewModel = viewModel()) {
             onLogStool = {
                 viewModel.refreshClock()
                 screen = Screen.LOG_STOOL
+            },
+            onOpenCycle = {
+                viewModel.refreshClock()
+                screen = Screen.CYCLE
             },
             onEditMeal = { meal ->
                 viewModel.editMeal(meal)
@@ -281,6 +285,12 @@ private fun FoodDiaryApp(viewModel: DiaryViewModel = viewModel()) {
                 viewModel.saveDayLog(day)
                 screen = Screen.TODAY
             },
+            onBack = up,
+        )
+
+        Screen.CYCLE -> CycleScreen(
+            state = state,
+            onSetFlow = viewModel::setFlow,
             onBack = up,
         )
 

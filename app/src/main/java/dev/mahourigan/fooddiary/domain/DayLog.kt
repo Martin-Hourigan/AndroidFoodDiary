@@ -17,6 +17,10 @@ enum class ExerciseLevel(val label: String) {
     HARD("Hard"),
 }
 
+/**
+ * Where in a cycle a day falls. Worked out by [Cycles] from logged bleed days,
+ * not picked: see [PeriodDay] for why.
+ */
 enum class CyclePhase(val label: String) {
     PERIOD("Period"),
     FOLLICULAR("Follicular"),
@@ -45,6 +49,13 @@ data class DayLog(
     val stress: Severity? = null,
     val exercise: ExerciseLevel? = null,
     val unwell: Boolean = false,
+
+    /**
+     * The phase as it used to be picked by hand. No longer asked: the phase is
+     * now derived from [PeriodDay]s. Older answers other than "period" are kept
+     * as they were written — the log is evidence — and "period" itself moved
+     * across to a bleed day on upgrade.
+     */
     val cyclePhase: CyclePhase? = null,
     val note: String = "",
 ) {

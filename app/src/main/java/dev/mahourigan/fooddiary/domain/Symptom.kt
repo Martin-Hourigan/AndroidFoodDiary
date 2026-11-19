@@ -60,6 +60,9 @@ object SymptomTypes {
     val SkinFlare = SymptomType("skin-flare")
     val LowMood = SymptomType("low-mood")
     val PoorSleep = SymptomType("poor-sleep")
+    val BreastTenderness = SymptomType("breast-tenderness")
+    val BackAche = SymptomType("back-ache")
+    val PelvicPain = SymptomType("pelvic-pain")
 
     val known: List<SymptomInfo> = listOf(
         SymptomInfo(Bloating, "Bloating", SymptomGroup.GUT),
@@ -83,6 +86,13 @@ object SymptomTypes {
         SymptomInfo(SkinFlare, "Skin flare-up", SymptomGroup.BODY),
         SymptomInfo(LowMood, "Low mood", SymptomGroup.BODY),
         SymptomInfo(PoorSleep, "Slept badly", SymptomGroup.BODY),
+
+        // The cycle ones. Logged as ordinary symptoms so period pain and a
+        // food reaction are scored on one scale and can be told apart, rather
+        // than living in a second system the analysis can't see.
+        SymptomInfo(PelvicPain, "Period pain", SymptomGroup.BODY),
+        SymptomInfo(BackAche, "Lower back ache", SymptomGroup.BODY),
+        SymptomInfo(BreastTenderness, "Breast tenderness", SymptomGroup.BODY),
     )
 
     private val byId: Map<SymptomType, SymptomInfo> = known.associateBy { it.type }

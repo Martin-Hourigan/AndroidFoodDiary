@@ -38,6 +38,7 @@ import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.MenuBook
 import androidx.compose.material.icons.outlined.MonitorHeart
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.WaterDrop
 import androidx.compose.material.icons.outlined.Wc
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -71,7 +72,7 @@ import java.time.LocalDateTime
 
 private val GUTTER = 52.dp
 
-/** The three bottom buttons: one size, set once. */
+/** The bottom buttons: one size, set once. */
 private val BAR_BUTTON = 56.dp
 private val BAR_ICON = 24.dp
 
@@ -91,6 +92,7 @@ fun TodayScreen(
     onLogMeal: () -> Unit,
     onLogSymptom: () -> Unit,
     onLogStool: () -> Unit,
+    onOpenCycle: () -> Unit,
     onEditMeal: (MealEntry) -> Unit,
     onDeleteMeal: (MealEntry) -> Unit,
     onStopSymptom: (SymptomEntry) -> Unit,
@@ -143,7 +145,12 @@ fun TodayScreen(
             )
         },
         bottomBar = {
-            LogBar(onLogSymptom = onLogSymptom, onLogStool = onLogStool, onOpenLibrary = onOpenLibrary)
+            LogBar(
+                onLogSymptom = onLogSymptom,
+                onLogStool = onLogStool,
+                onOpenCycle = onOpenCycle,
+                onOpenLibrary = onOpenLibrary,
+            )
         },
         floatingActionButton = {
             // Eating is the thing that happens most, so it gets the one control
@@ -227,10 +234,15 @@ private fun Severity.easier(): Severity =
     Severity.entries.getOrElse(ordinal - 1) { Severity.MILD }
 
 @Composable
-private fun LogBar(onLogSymptom: () -> Unit, onLogStool: () -> Unit, onOpenLibrary: () -> Unit) {
-    // Three circles of one size, evenly spread, with the round + centred above
+private fun LogBar(
+    onLogSymptom: () -> Unit,
+    onLogStool: () -> Unit,
+    onOpenCycle: () -> Unit,
+    onOpenLibrary: () -> Unit,
+) {
+    // Circles of one size, evenly spread, with the round + centred above
     // them. Same shape and same weight because they are the same kind of thing:
-    // three places to go, none of them the main event.
+    // places to go, none of them the main event.
     //
     // Icons alone, no labels. It costs a beginner one guess at "book" and buys
     // a bar that is mostly empty paper, which is the look this app is going
@@ -275,10 +287,19 @@ private fun LogBar(onLogSymptom: () -> Unit, onLogStool: () -> Unit, onOpenLibra
                 modifier = Modifier.size(BAR_ICON),
             )
         }
+        BarButton(onClick = onOpenCycle) {
+            // A drop, the stock icon nearest a period. It opens a screen rather
+            // than a log sheet: the cycle is read as much as it is written.
+            Icon(
+                Icons.Outlined.WaterDrop,
+                contentDescription = "Cycle",
+                modifier = Modifier.size(BAR_ICON),
+            )
+        }
     }
 }
 
-/** One of the three, so they cannot drift apart in size or shape. */
+/** One of the bar's circles, so they cannot drift apart in size or shape. */
 @Composable
 private fun BarButton(onClick: () -> Unit, icon: @Composable () -> Unit) {
     FilledTonalIconButton(
@@ -661,8 +682,11 @@ private fun DayLogCard(state: UiState, onOpen: () -> Unit) {
         day.sleepQuality?.let { add("sleep ${it.label.lowercase()}") }
         day.stress?.let { add("stress ${it.label.lowercase()}") }
         day.exercise?.let { add(it.label.lowercase() + " exercise") }
-        day.cyclePhase?.let { add(it.label.lowercase()) }
         if (day.unwell) add("unwell")
+        // The cycle is a confounder like the rest, so it is summarised here —
+        // but derived, not answered, so it lives on its own screen.
+        state.flowOn(state.date)?.let { add("${it.label.lowercase()} flow") }
+        state.cycleStatus?.let { add(describeCycleDay(it)) }
     }
 
     Card(

@@ -9,6 +9,7 @@ import dev.mahourigan.fooddiary.domain.DayLog
 import dev.mahourigan.fooddiary.domain.Ingredient
 import dev.mahourigan.fooddiary.domain.MealEntry
 import dev.mahourigan.fooddiary.domain.MedEntry
+import dev.mahourigan.fooddiary.domain.PeriodDay
 import dev.mahourigan.fooddiary.domain.Recipe
 import dev.mahourigan.fooddiary.domain.Settings
 import dev.mahourigan.fooddiary.domain.StoolEntry
@@ -43,6 +44,9 @@ data class DiarySnapshot(
     val stools: List<StoolEntry> = emptyList(),
     val meds: List<MedEntry> = emptyList(),
     val days: List<DayLog> = emptyList(),
+
+    /** Bleed days, at most one per date. Everything else about the cycle is derived. */
+    val periodDays: List<PeriodDay> = emptyList(),
 
     /** The version of the bundled library already merged in, so a reseed is idempotent. */
     val seedVersion: Int = 0,
@@ -132,8 +136,11 @@ data class DiarySnapshot(
          * 13 → 14: a recipe's single nested folder ("Cafe/Kettle Black") became
          * a set of flat tags, shared with ingredients. Splitting on the slash
          * keeps both halves as tags, so browsing either still finds it.
+         *
+         * 17 -> 18: the hand-picked cycle phase gives way to logged bleed days.
+         * A day marked "period" becomes a bleed day with no flow recorded.
          */
-        const val CURRENT_SCHEMA = 17
+        const val CURRENT_SCHEMA = 18
 
         /** Options dropped from the bundled categories. Still in the library. */
         val DROPPED_CATEGORY_OPTIONS: Set<String> = setOf(

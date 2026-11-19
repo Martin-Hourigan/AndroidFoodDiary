@@ -1,6 +1,5 @@
 package dev.mahourigan.fooddiary.ui
 
-import dev.mahourigan.fooddiary.domain.CyclePhase
 import dev.mahourigan.fooddiary.domain.DayLog
 import dev.mahourigan.fooddiary.domain.ExerciseLevel
 import dev.mahourigan.fooddiary.domain.Severity
@@ -55,7 +54,6 @@ fun DayLogScreen(
     var stress by remember { mutableStateOf(existing.stress) }
     var exercise by remember { mutableStateOf(existing.exercise) }
     var unwell by remember { mutableStateOf(existing.unwell) }
-    var cyclePhase by remember { mutableStateOf(existing.cyclePhase) }
     var note by remember { mutableStateOf(existing.note) }
 
     Scaffold(
@@ -119,13 +117,6 @@ fun DayLogScreen(
             Spacer(Modifier.height(4.dp))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 FilterChip(selected = unwell, onClick = { unwell = !unwell }, label = { Text("Unwell") })
-                CyclePhase.entries.forEach { phase ->
-                    FilterChip(
-                        selected = cyclePhase == phase,
-                        onClick = { cyclePhase = if (cyclePhase == phase) null else phase },
-                        label = { Text(phase.label) },
-                    )
-                }
             }
 
             Spacer(Modifier.height(14.dp))
@@ -147,7 +138,9 @@ fun DayLogScreen(
                             stress = stress,
                             exercise = exercise,
                             unwell = unwell,
-                            cyclePhase = cyclePhase,
+                            // No longer asked; the cycle screen derives it.
+                            // Carried through so saving never erases an old answer.
+                            cyclePhase = existing.cyclePhase,
                             note = note,
                         ),
                     )
